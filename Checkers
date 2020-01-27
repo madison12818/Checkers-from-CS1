@@ -1,0 +1,437 @@
+//
+//  Checkers Program
+//
+
+#include <cassert>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+
+enum ChipColor {      // value as int EMPTY==0 RED==1 BLACK==2
+  EMPTY, RED, BLACK
+};
+enum ChipRank {    // value as int NOTKING==0 KING==1
+  NOT_KING, KING
+};
+
+enum SquareColor {   // value as int WHITE_SQUARE=0 BLACK_SQUARE=1
+  WHITE_SQUARE, BLACK_SQUARE
+};
+
+// Square class defines a square on a checkers board
+class Square{
+
+public:
+  Square();
+  Square(ChipColor newColor, ChipRank newRank, SquareColor newSqColor);
+  void setColor(ChipColor newColor);
+  void setRank(ChipRank newRank);
+  void setSquareColor(SquareColor newSqColor);
+  ChipColor getChipColor();
+  ChipRank getChipRank();
+  SquareColor getSquareColor();
+  bool isEmpty();
+  void setEmpty();
+  char displayChipColor();
+
+
+private:
+  ChipColor chipColor;
+  ChipRank chipRank;
+  SquareColor squareColor;
+};
+
+// Your square member function code goes here
+
+Square::Square(){ //constructor
+  chipColor = EMPTY;
+  chipRank = NOT_KING;
+  squareColor = WHITE_SQUARE;
+}
+
+
+Square::Square(ChipColor newColor, ChipRank newRank, SquareColor newSqColor){ //constructor
+  chipColor = newColor;
+  chipRank = newRank;
+  squareColor = newSqColor;
+}
+
+void Square::setColor(ChipColor newColor){ //mutator
+  chipColor = newColor;
+}
+
+
+void Square::setRank(ChipRank newRank){ //mutator
+  chipRank = newRank;
+}
+
+void Square::setSquareColor(SquareColor newSqColor){ //mutator
+  squareColor = newSqColor;
+}
+
+ChipColor Square::getChipColor(){ //accessor
+  return chipColor;
+}
+
+ChipRank Square::getChipRank(){ //accessor
+
+  return chipRank;
+}
+
+SquareColor Square::getSquareColor(){ //accessor
+
+  return squareColor;
+
+}
+
+bool Square::isEmpty(){ //accessor
+  if(chipColor == EMPTY){
+    return true;
+  }
+  else{
+    return false;
+  }
+}
+
+void Square::setEmpty(){ //mutator
+
+  chipColor = EMPTY;
+}
+
+char Square::displayChipColor(){ //accessor
+
+  char color;
+
+  if (chipColor == EMPTY)
+    color = ' ';
+  if (chipColor == RED)
+    color = 'R';
+  if (chipColor == BLACK)
+    color = 'B';
+
+  return color;
+}
+
+
+// Board class defines an 8x8 board
+class Board {
+
+public:
+  //Board();
+  void displayBoard();
+  void boardSquareColor();
+  void setUpBoard(std::string fileName);
+  void saveBoard(std::string fileName);
+  bool processMove(int row1, int col1, int row2, int col2);
+  bool isLegalMove(int row1, int col1, int row2, int col2);
+  bool moveChecker(int row1, int col1, int row2, int col2);
+
+private:
+  int boardSize = 8;
+  Square board[8][8];
+};
+
+
+// Your Board member function code goes here
+
+void Board::boardSquareColor(){ //constructor
+
+
+  int i=0;
+  int j=0;
+  int color;
+
+  for (i=0; i<boardSize; ++i){
+    color = (i) % 2;          // Mod 2 - needed to distinguish white and black squares
+    for (j=0; j<boardSize; ++j){
+      if ( (j + color) %2 ){
+        board[i][j].setSquareColor(WHITE_SQUARE);
+      }
+      else{
+        board[i][j].setSquareColor(BLACK_SQUARE);
+      }
+    }
+  }
+}
+
+//new functions for Lab05
+
+bool Board::processMove(int row1, int col1, int row2, int col2){
+
+  //testing if all inputs are within bounds
+  if ((row1 < 0) || (row1 > boardSize)){
+    return false;
+  }
+  else if ((row2 < 0) || (row2 > boardSize)){
+    return false;
+  }
+  else if ((col1 < 0) || (col1 > boardSize)){
+    return false;
+  }
+  else if ((col2 < 0) || (col2 > boardSize)){
+    return false;
+  }
+
+  if (isLegalMove(row1, col1, row2, col2)){
+    return moveChecker(row1, col1, row2, col2);
+  }
+
+  return false;
+}
+
+bool Board::isLegalMove(int row1, int col1, int row2, int col2){
+
+  //if there is no chip in that pos, then return false
+  if (board[row1][col1].getChipColor() == EMPTY){
+    return false;
+  }
+ //if the board space to move to is empty and it's a black square, then return true
+  if ((board[row2][col2].getChipColor() == EMPTY) && (board[row2][col2].getSquareColor() == BLACK_SQUARE)){
+    return true;
+  }
+
+  return false;
+}
+
+bool Board::moveChecker(int row1, int col1, int row2, int col2){
+
+  board[row2][col2].setRank(board[row1][col1].getChipRank());
+  board[row2][col2].setColor(board[row1][col1].getChipColor());
+
+  board[row1][col1].setRank(NOT_KING);
+  board[row1][col1].setColor(EMPTY);
+
+  return true;
+}
+
+void Board::setUpBoard(std::string fileName){
+
+  std::ifstream inFile;
+  inFile.open(fileName.c_str());
+  std::string fileInfo; // row - line[0], col - line[2], chip color -line[4], rank - line[6] //using 0, 2, 4, 6 due to spaces at 1, 3, 5
+  ChipColor savedColor;
+  ChipRank savedRank;
+  int num;
+  int column;
+  int row;
+
+  while(!inFile.eof()){
+    getline(inFile, fileInfo);
+
+    //convert from char to int
+    column = fileInfo[2] - 48;
+    row = fileInfo[0] - 48;
+
+    // getting chip color
+    num = fileInfo[4] - 48;
+    switch(num){
+    case 0:
+      savedColor = EMPTY;
+      break;
+    case 1:
+      savedColor = RED;
+      break;
+    case 2:
+      savedColor = BLACK;
+      break;
+  }
+
+    // getting chip rank
+    num = fileInfo[6] - 48;
+    switch(num){
+    case 0:
+      savedRank = NOT_KING;
+      break;
+    case 1:
+      savedRank = KING;
+      break;
+    }
+
+    //std::cout << fileInfo << std::endl; // checking output
+
+    board[row][column].setColor(savedColor);
+    board[row][column].setRank(savedRank);
+  }
+
+  inFile.close();
+}
+
+void Board::saveBoard(std::string fileName){
+
+  std::ofstream outFile;
+  outFile.open(fileName.c_str());
+
+  for (int row = 0; row < boardSize; ++row){
+    for (int column = 0; column < boardSize; ++column){
+      outFile << row << " " << column << " "
+              << board[row][column].getChipColor() << " "
+              << board[row][column].getChipRank()
+              << std::endl;
+    }
+  }
+
+  outFile.close();
+}
+// display an 8x8 board of squares like the following:
+//
+//  +-----+-----+-----+...
+//  |*****|     |*****|
+//  |* x *|     |* x *|
+//  |*****|     |*****|
+//  +-----+-----+-----+...
+//
+//   where the square with the x in it is a black square where the x indicates the color (empty, R or B)
+//   and the blank squares are just spaces;
+
+void Board::displayBoard(){
+  std::string dashes = "+-----";      //characters for square top and bottom bounds
+  std::string spaces = "|     ";      //fill for white squares
+  std::string stars = "|*****";       // fill for black squares
+  std::string line = "";
+  std::string filler;
+  int i,j,color;
+
+  for (i=0; i < boardSize; i++){   //repeat 8 times, once for each row of squares
+
+    line="";
+    for (j=0; j < boardSize; j++){     //build line of cells for boundary  ( +---+ )
+      line = line + dashes;
+    }
+    std::cout << line << "+" << std::endl;
+
+    color = (i) % 2;          // Mod 2 - needed to distinguish white and black squares
+
+    line="";
+    for (j=0; j < boardSize; j++){     //build first line for row of square
+      if ( (j + color) %2 ){
+        filler = spaces;        // fill spaces for white squares    ( |   |)
+      }
+      else{
+        filler = stars;        // fill stars for black squares     ( |***|)
+      }
+      line = line + filler;
+    }
+
+    std::cout << line << "|" << std::endl;
+
+
+    line="";
+    for (j=0; j < boardSize; j++){             //build second line for row of square ( | x | )
+      if ((j + color) % 2 ){
+        filler = spaces;        // fill spaces for white squares    ( |   |)
+      }
+      else{
+        filler = "|**";                   // fill spaces for blacksquares
+        filler += board[i][j].displayChipColor();   // display color of checker
+        filler += "**";
+      }
+      line = line + filler;
+    }
+
+ std::cout << line << "|" << std::endl;
+
+    line="";
+    for (j=0; j < boardSize; j++){              //build third line for row of square
+      if ( (j + color) %2 ){
+        filler = spaces;        // fill spaces for white squares   ( |   | )
+      }
+      else{
+        filler = stars;        // fill stars for black squares   ( |***| )
+      }
+      line = line + filler;
+    }
+    std::cout << line << "|" << std::endl;
+  }
+
+
+  line="";
+  for (j=0; j < boardSize; j++){     //build line of cells for boundary on bottom of board   ( +---+ )
+    line = line + dashes;
+  }
+  std::cout << line << "+" << std::endl;
+
+  std::cout << std::endl;
+  
+  }
+  
+  int main(){
+
+  Board gameBoard;
+
+  Square firstSquare;
+  Square secondSquare(RED, NOT_KING, BLACK_SQUARE);
+
+  std::cout  <<  firstSquare.getChipColor() << std::endl;
+  std::cout  <<  secondSquare.getChipColor() << std::endl;
+
+  //gameBoard.displayBoard();
+
+  //testing accessors and constructors for first square
+  assert (firstSquare.getChipColor() == EMPTY);
+  assert (firstSquare.getChipRank() == NOT_KING);
+  assert (firstSquare.isEmpty() == true);
+
+  std::cout << "firstSquare tests passed" << std::endl;
+
+  //testing accessors and constructors for second square
+  assert (secondSquare.getChipColor() == RED);
+  assert (secondSquare.getChipRank() == NOT_KING);
+  assert (secondSquare.isEmpty() == false);
+
+  std::cout << "secondSquare tests passed" << std::endl;
+
+    //testing setEmpty and isEmpty
+    secondSquare.setEmpty();
+    assert (secondSquare.isEmpty() == true);
+
+    std::cout << "setEmpty and isEmpty are passed" << std::endl;
+
+    //testing setRank
+    firstSquare.setRank(KING);
+    assert (firstSquare.getChipRank() == KING);
+
+    std::cout << "setRank test passed" << std::endl;
+
+    //testing setColor
+    firstSquare.setColor(BLACK);
+    assert (firstSquare.getChipColor() == BLACK);
+
+    std::cout << "setColor test passed" << std::endl;
+
+    //testing displayChipColor
+    std::cout << "Test: chip color is " << firstSquare.displayChipColor() << std::endl;
+
+    //testing setSquareColor
+    firstSquare.setSquareColor(WHITE_SQUARE);
+    assert (firstSquare.getSquareColor() == WHITE_SQUARE);
+
+    /*
+
+    //testing output
+    std::string inFile = "savedGame.txt";
+    std::string outFile = "test.txt";
+    gameBoard.setUpBoard(inFile);
+    gameBoard.saveBoard(outFile);
+
+    */
+
+    //testing process move, isLegalMove, and moveChecker
+    //--------------
+    //legal
+    //assert (gameBoard.processMove(0, 1, 3, 2));
+
+    //illegal
+    //assert (gameBoard.processMove(0, 3, 3, 1));
+    //assert (gameBoard.processMove(0, 3, 1, 2));
+
+    //extra tests
+    //firstSquare.setColor(RED);
+    gameBoard.displayBoard();
+
+   return 0;
+
+}
+
+
+
